@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { TimeEntry } from "../models/TimeEntry.js";
 import { Timesheet } from "../models/Timesheet.js";
-import { HttpError, findRunningTimer, populateEntry } from "../lib/timesheet.js";
+import { HttpError, entryValue, findRunningTimer, populateEntry } from "../lib/timesheet.js";
 import { mondayOf, parseTzOffset, weekDates } from "../lib/week.js";
 
 export const timesheetsRouter = Router();
@@ -20,7 +20,33 @@ function serializeWeek(timesheet, entries, tzOffset) {
   });
 
   const totalMinutes = days.reduce((sum, d) => sum + d.totalMinutes, 0);
-  return { timesheet, days, totalMinutes };
+  const completed = days.flatMap((d) => d.entries);
+  const billableMinutes = completed
+    .filter((e) => e.engagement?.billable)
+    .reduce((sum, e) => sum + e.durationMinutes, 0);
+  const nonBillableMinutes = totalMinutes - billableMinutes;
+  const billableValue = completed.reduce((sum, e) => sum + entryValue(e), 0);
+
+  const byClient = new Map();
+  for (const entry of completed) {
+    const name = entry.engagement?.client?.name || "Unknown";
+    const current = byClient.get(name) || { client: name, minutes: 0, value: 0 };
+    current.minutes += entry.durationMinutes;
+    current.value += entryValue(entry);
+    byClient.set(name, current);
+  }
+  const clientBreakdown = [...byClient.values()].sort((a, b) => b.minutes - a.minutes);
+
+  return {
+    timesheet,
+    days,
+    totalMinutes,
+    billableMinutes,
+    nonBillableMinutes,
+    billableValue,
+    clientBreakdown,
+    targetMinutes: 40 * 60,
+  };
 }
 
 timesheetsRouter.get("/current", async (req, res, next) => {

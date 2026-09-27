@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const consultantSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
+    title: { type: String, default: "Consultant" },
     email: { type: String, required: true, unique: true },
   },
   { timestamps: true }

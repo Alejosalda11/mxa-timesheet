@@ -45,3 +45,9 @@ export function populateEntry() {
     populate: { path: "client" },
   };
 }
+
+export function entryValue(entry) {
+  const engagement = entry.engagement;
+  if (!engagement?.billable) return 0;
+  return (entry.durationMinutes / 60) * (engagement.hourlyRate || 0);
+}

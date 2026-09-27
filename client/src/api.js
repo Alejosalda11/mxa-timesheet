@@ -30,6 +30,8 @@ export const api = {
   deleteEntry: (id) => request(`/api/entries/${id}`, { method: "DELETE" }),
   submitWeek: (id) =>
     request(`/api/timesheets/${id}/submit`, { method: "POST", body: "{}" }),
+  loadDemo: (date) =>
+    request("/api/demo/load", { method: "POST", body: JSON.stringify({ date }) }),
 };
 
 export function localToday() {
@@ -48,6 +50,30 @@ export function formatMinutes(total) {
   return `${minutes}m`;
 }
 
+export function formatHours(minutes) {
+  return `${(minutes / 60).toFixed(1)}h`;
+}
+
+export function formatMoney(value) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+}
+
+export function formatMoneyExact(value) {
+  return new Intl.NumberFormat("en-AU", {
+    style: "currency",
+    currency: "AUD",
+  }).format(value || 0);
+}
+
+export function entryValue(entry) {
+  if (!entry?.engagement?.billable) return 0;
+  return (entry.durationMinutes / 60) * (entry.engagement.hourlyRate || 0);
+}
+
 export function formatTime(iso) {
   return new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 }
@@ -62,4 +88,27 @@ export function engagementLabel(engagement) {
   if (!engagement) return "Unknown";
   const client = engagement.client?.name || "Client";
   return `${client} · ${engagement.name}`;
+}
+
+export function initials(name) {
+  return (name || "AV")
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join("");
+}
+
+export function formatWeekRange(weekStart) {
+  if (!weekStart) return "…";
+  const start = new Date(`${weekStart}T00:00:00`);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const left = `${months[start.getMonth()]} ${start.getDate()}`;
+  const right =
+    start.getMonth() === end.getMonth()
+      ? `${end.getDate()}, ${end.getFullYear()}`
+      : `${months[end.getMonth()]} ${end.getDate()}, ${end.getFullYear()}`;
+  return `Week of ${left} – ${right}`;
 }

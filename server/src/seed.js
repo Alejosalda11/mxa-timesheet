@@ -18,25 +18,27 @@ async function seed() {
   ]);
 
   const consultant = await Consultant.create({
-    name: "Alex Chen",
+    name: "Alex Vance",
+    title: "Senior Consultant",
     email: CONSULTANT_EMAIL,
   });
 
-  const [northwind, harbor, apex] = await Client.create([
-    { name: "Northwind Retail" },
-    { name: "Harbor Legal" },
+  const [acme, apex, tech, internal] = await Client.create([
+    { name: "Acme Corp" },
     { name: "Apex Health" },
+    { name: "TechStart" },
+    { name: "MXA Internal" },
   ]);
 
   await Engagement.create([
-    { client: northwind._id, name: "ERP rollout", billable: true },
-    { client: northwind._id, name: "Weekly ops standup", billable: false },
-    { client: harbor._id, name: "Discovery", billable: true },
-    { client: apex._id, name: "Data migration", billable: true },
+    { client: acme._id, name: "Cloud Migration", billable: true, hourlyRate: 210 },
+    { client: apex._id, name: "EHR Portal Audit", billable: true, hourlyRate: 185 },
+    { client: tech._id, name: "MVP Architecture", billable: true, hourlyRate: 240 },
+    { client: internal._id, name: "Practice ops", billable: false, hourlyRate: 0 },
   ]);
 
   console.log(`Seeded consultant ${consultant.name} <${consultant.email}>`);
-  console.log("Clients: Northwind Retail, Harbor Legal, Apex Health");
+  console.log("Clients: Acme Corp, Apex Health, TechStart, MXA Internal");
   await disconnectDb();
 }
 

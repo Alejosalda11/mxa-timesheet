@@ -10,6 +10,7 @@ import { engagementsRouter } from "./routes/engagements.js";
 import { timerRouter } from "./routes/timer.js";
 import { entriesRouter } from "./routes/entries.js";
 import { timesheetsRouter } from "./routes/timesheets.js";
+import { demoRouter } from "./routes/demo.js";
 
 const app = express();
 app.use(cors());
@@ -23,6 +24,7 @@ app.use("/api/engagements", engagementsRouter);
 app.use("/api/timer", timerRouter);
 app.use("/api/entries", entriesRouter);
 app.use("/api/timesheets", timesheetsRouter);
+app.use("/api/demo", demoRouter);
 
 app.use(errorHandler);
 
