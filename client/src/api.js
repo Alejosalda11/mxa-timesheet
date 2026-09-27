@@ -18,6 +18,8 @@ async function request(path, options = {}) {
 export const api = {
   me: () => request("/api/me"),
   engagements: () => request("/api/engagements"),
+  updateEngagement: (id, body) =>
+    request(`/api/engagements/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
   timer: () => request("/api/timer"),
   startTimer: (body) =>
     request("/api/timer/start", { method: "POST", body: JSON.stringify(body) }),

@@ -42,6 +42,8 @@ export default function Dashboard() {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tick, setTick] = useState(0);
+  const [fees, setFees] = useState({});
+  const [feesOpen, setFeesOpen] = useState(false);
 
   const load = useCallback(async () => {
     const [eng, running, current] = await Promise.all([
@@ -50,6 +52,7 @@ export default function Dashboard() {
       api.currentWeek(localToday()),
     ]);
     setEngagements(eng);
+    setFees(Object.fromEntries(eng.map((item) => [item._id, String(item.hourlyRate ?? 0)])));
     setTimer(running);
     setWeek(current);
     setEngagementId((id) => id || eng[0]?._id || "");
@@ -193,6 +196,30 @@ export default function Dashboard() {
     }
   }
 
+  async function saveFee(e, id) {
+    e.preventDefault();
+    const hourlyRate = Number(fees[id]);
+    if (!Number.isFinite(hourlyRate) || hourlyRate < 0) {
+      setError("Hourly fee must be 0 or more.");
+      return;
+    }
+    setBusy(true);
+    setError("");
+    try {
+      await api.updateEngagement(id, { hourlyRate });
+      await load();
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function taskOption(eng) {
+    if (!eng.billable) return `${engagementLabel(eng)} (non-billable)`;
+    return `${engagementLabel(eng)} · ${formatMoneyExact(eng.hourlyRate)}/hr`;
+  }
+
   async function loadDemo() {
     setBusy(true);
     setError("");
@@ -310,8 +337,7 @@ export default function Dashboard() {
               >
                 {engagements.map((eng) => (
                   <option key={eng._id} value={eng._id}>
-                    {engagementLabel(eng)}
-                    {eng.billable ? "" : " (non-billable)"}
+                    {taskOption(eng)}
                   </option>
                 ))}
               </select>
@@ -344,7 +370,7 @@ export default function Dashboard() {
               >
                 {engagements.map((eng) => (
                   <option key={eng._id} value={eng._id}>
-                    {engagementLabel(eng)}
+                    {taskOption(eng)}
                   </option>
                 ))}
               </select>
@@ -468,7 +494,7 @@ export default function Dashboard() {
               >
                 {engagements.map((eng) => (
                   <option key={eng._id} value={eng._id}>
-                    {engagementLabel(eng)}
+                    {taskOption(eng)}
                   </option>
                 ))}
               </select>
@@ -497,6 +523,62 @@ export default function Dashboard() {
         </article>
 
         <aside className="side">
+          <article className="card fee-card">
+            <button
+              type="button"
+              className="fee-toggle"
+              aria-expanded={feesOpen}
+              aria-controls="hourly-fees"
+              onClick={() => setFeesOpen((open) => !open)}
+            >
+              <span>Hourly fees</span>
+              <span className="fee-chevron" aria-hidden="true">
+                {feesOpen ? "▴" : "▾"}
+              </span>
+            </button>
+            {feesOpen ? (
+              <div id="hourly-fees" className="fee-body">
+                <p className="muted fee-note">
+                  Each client has its own rate. This week’s value uses these fees.
+                </p>
+                <ul className="fee-list">
+                  {engagements.map((eng) => {
+                    const unchanged = String(eng.hourlyRate ?? 0) === String(fees[eng._id] ?? "");
+                    return (
+                      <li key={eng._id}>
+                        <div>
+                          <strong>{eng.client?.name}</strong>
+                          <span className="sub">{eng.name}</span>
+                        </div>
+                        <form className="fee-form" onSubmit={(e) => saveFee(e, eng._id)}>
+                          <label>
+                            <span className="field-label">Fee</span>
+                            <span className="fee-input">
+                              <span>$</span>
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                value={fees[eng._id] ?? ""}
+                                onChange={(e) =>
+                                  setFees((prev) => ({ ...prev, [eng._id]: e.target.value }))
+                                }
+                                aria-label={`Hourly fee for ${engagementLabel(eng)}`}
+                              />
+                            </span>
+                          </label>
+                          <button type="submit" className="btn-ghost" disabled={busy || unchanged}>
+                            Save
+                          </button>
+                        </form>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ) : null}
+          </article>
+
           <article className="card">
             <h3>Client breakdown</h3>
             {!(week?.clientBreakdown || []).length ? (
